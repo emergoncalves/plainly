@@ -1,7 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { StatusBar } from "expo-status-bar";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Platform, SafeAreaView, StyleSheet, TextInput } from "react-native";
+import {
+  KeyboardAvoidingView,
+  Platform,
+  SafeAreaView,
+  StyleSheet,
+  TextInput,
+} from "react-native";
 
 const STORAGE_KEY = "@plainly/notes";
 const SAVE_DELAY_MS = 400;
@@ -81,23 +87,29 @@ export default function App() {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="light" />
-      <TextInput
-        ref={textInputRef}
-        style={styles.editor}
-        placeholder="Escreva suas notas..."
-        placeholderTextColor="#7a7f87"
-        multiline
-        autoFocus
-        value={note}
-        onChangeText={handleChange}
-        autoCorrect
-        autoCapitalize="sentences"
-        textAlignVertical="top"
-        keyboardAppearance="dark"
-        scrollEnabled
-        blurOnSubmit={false}
-        selectionColor="#5ce2ff"
-      />
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoider}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 48 : 0}
+      >
+        <TextInput
+          ref={textInputRef}
+          style={styles.editor}
+          placeholder="Escreva suas notas..."
+          placeholderTextColor="#7a7f87"
+          multiline
+          autoFocus
+          value={note}
+          onChangeText={handleChange}
+          autoCorrect
+          autoCapitalize="sentences"
+          textAlignVertical="top"
+          keyboardAppearance="dark"
+          scrollEnabled
+          blurOnSubmit={false}
+          selectionColor="#5ce2ff"
+        />
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -108,6 +120,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#05060a",
     paddingHorizontal: 20,
     paddingTop: Platform.OS === "android" ? 20 : 0,
+  },
+  keyboardAvoider: {
+    flex: 1,
   },
   editor: {
     flex: 1,
