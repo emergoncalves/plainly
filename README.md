@@ -1,4 +1,6 @@
-# plainly
+# Plainly
+
+<img width="200" height="200" alt="Design sem nome" src="https://github.com/user-attachments/assets/0aca4914-bcdf-48fd-8892-3e4150a7ff38" />
 
 Dark, distraction-free note pad built with Expo and React Native. The entire screen becomes a single text field so you can jot thoughts quickly, keep them local for now, and resume exactly where you left off.
 
