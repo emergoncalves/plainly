@@ -13,8 +13,8 @@ export const colors = {
 };
 
 export const typography = {
-  fontSize: 18,
-  lineHeight: 32,
+  fontSize: 16,
+  lineHeight: 28,
   fontFamily: Platform.select({
     ios: "Menlo",
     android: "monospace",
