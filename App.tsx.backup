@@ -1,0 +1,525 @@
+import { useEffect, useRef, useState } from "react";
+import { StatusBar } from "expo-status-bar";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import {
+  Alert,
+  Clipboard,
+  KeyboardAvoidingView,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
+
+const STORAGE_KEY = "@plainly/notes";
+const SAVE_DELAY_MS = 400;
+
+export default function App() {
+  const [note, setNote] = useState("");
+  const [hasLoaded, setHasLoaded] = useState(false);
+  const [snapToEnd, setSnapToEnd] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchVisible, setSearchVisible] = useState(false);
+  const [currentMatch, setCurrentMatch] = useState(0);
+  const textInputRef = useRef<TextInput>(null);
+  const scrollViewRef = useRef<ScrollView>(null);
+  const saveTimer = useRef<NodeJS.Timeout | null>(null);
+  const lastTapTime = useRef<number>(0);
+  const lastTapLine = useRef<number>(-1);
+
+  useEffect(() => {
+    const loadNotes = async () => {
+      try {
+        const stored = await AsyncStorage.getItem(STORAGE_KEY);
+        if (stored) {
+          setNote(stored);
+          setSnapToEnd(true);
+        }
+      } catch (error) {
+        console.warn("Could not load saved note", error);
+      } finally {
+        setHasLoaded(true);
+      }
+    };
+
+    loadNotes();
+  }, []);
+
+  useEffect(() => {
+    if (saveTimer.current) {
+      clearTimeout(saveTimer.current);
+    }
+
+    if (!hasLoaded) {
+      return;
+    }
+
+    saveTimer.current = setTimeout(async () => {
+      try {
+        await AsyncStorage.setItem(STORAGE_KEY, note);
+      } catch (error) {
+        console.warn("Could not save note", error);
+      }
+    }, SAVE_DELAY_MS);
+
+    return () => {
+      if (saveTimer.current) {
+        clearTimeout(saveTimer.current);
+      }
+    };
+  }, [note, hasLoaded]);
+
+  useEffect(() => {
+    if (!snapToEnd) {
+      return;
+    }
+
+    const timeout = setTimeout(() => {
+      const input = textInputRef.current;
+      if (input) {
+        input.focus();
+        input.setNativeProps({
+          selection: { start: note.length, end: note.length },
+        });
+      }
+      setSnapToEnd(false);
+    }, 50);
+
+    return () => clearTimeout(timeout);
+  }, [snapToEnd, note.length]);
+
+  const handleChange = (value: string) => {
+    setNote(value);
+  };
+
+  const handlePress = (event: any) => {
+    const { locationY } = event.nativeEvent;
+    const lineHeight = 24;
+    const paddingTop = 18;
+    const lineIndex = Math.floor((locationY - paddingTop) / lineHeight);
+
+    const now = Date.now();
+    const isDoubleTap =
+      lineIndex === lastTapLine.current && now - lastTapTime.current < 300;
+
+    lastTapTime.current = now;
+    lastTapLine.current = lineIndex;
+
+    if (isDoubleTap) {
+      const lines = note.split("\n");
+
+      if (lineIndex >= 0 && lineIndex < lines.length) {
+        const line = lines[lineIndex];
+
+        // Toggle: se já tiver (FEITO), remove; se não tiver, adiciona
+        if (line.trim().endsWith("(FEITO)")) {
+          lines[lineIndex] = line.replace(/\s*\(FEITO\)\s*$/, "");
+        } else {
+          lines[lineIndex] = line + " (FEITO)";
+        }
+        setNote(lines.join("\n"));
+      }
+    }
+  };
+
+  const handleLongPress = (event: any) => {
+    const { locationY } = event.nativeEvent;
+    const lineHeight = 26;
+    const paddingTop = 16;
+    const lineIndex = Math.floor((locationY - paddingTop) / lineHeight);
+
+    const lines = note.split("\n");
+
+    if (lineIndex >= 0 && lineIndex < lines.length) {
+      const line = lines[lineIndex];
+
+      Alert.alert(
+        "Ações da linha",
+        line.substring(0, 50) + (line.length > 50 ? "..." : ""),
+        [
+          {
+            text: "Copiar",
+            onPress: () => {
+              Clipboard.setString(line);
+            },
+          },
+          {
+            text: "Excluir",
+            style: "destructive",
+            onPress: () => {
+              lines.splice(lineIndex, 1);
+              setNote(lines.join("\n"));
+            },
+          },
+          {
+            text: "Cancelar",
+            style: "cancel",
+          },
+        ]
+      );
+    }
+  };
+
+  const findMatches = () => {
+    if (!searchQuery.trim()) return [];
+    const matches: number[] = [];
+    const query = searchQuery.toLowerCase();
+    const text = note.toLowerCase();
+    let index = text.indexOf(query);
+
+    while (index !== -1) {
+      matches.push(index);
+      index = text.indexOf(query, index + 1);
+    }
+
+    return matches;
+  };
+
+  const matches = findMatches();
+
+  const navigateToMatch = (direction: "next" | "prev") => {
+    if (matches.length === 0) return;
+
+    let newIndex = currentMatch;
+    if (direction === "next") {
+      newIndex = (currentMatch + 1) % matches.length;
+    } else {
+      newIndex = (currentMatch - 1 + matches.length) % matches.length;
+    }
+
+    setCurrentMatch(newIndex);
+
+    const matchPosition = matches[newIndex];
+
+    // Calcula a linha onde está o match
+    const textBeforeMatch = note.substring(0, matchPosition);
+    const linesBefore = textBeforeMatch.split("\n").length - 1;
+    const lineHeight = 26;
+    const paddingTop = 16;
+    const scrollY = linesBefore * lineHeight;
+
+    // Rola para a posição
+    setTimeout(() => {
+      scrollViewRef.current?.scrollTo({ y: scrollY, animated: true });
+      textInputRef.current?.setNativeProps({
+        selection: {
+          start: matchPosition,
+          end: matchPosition + searchQuery.length,
+        },
+      });
+    }, 100);
+  };
+
+  useEffect(() => {
+    if (matches.length > 0 && searchQuery) {
+      const matchPosition = matches[currentMatch];
+
+      // Calcula a linha onde está o match
+      const textBeforeMatch = note.substring(0, matchPosition);
+      const linesBefore = textBeforeMatch.split("\n").length - 1;
+      const lineHeight = 26;
+      const scrollY = linesBefore * lineHeight;
+
+      // Rola para a posição
+      setTimeout(() => {
+        scrollViewRef.current?.scrollTo({ y: scrollY, animated: true });
+        textInputRef.current?.setNativeProps({
+          selection: {
+            start: matchPosition,
+            end: matchPosition + searchQuery.length,
+          },
+        });
+      }, 100);
+    }
+  }, [searchQuery, currentMatch]);
+
+  useEffect(() => {
+    if (searchQuery) {
+      setCurrentMatch(0);
+    }
+  }, [searchQuery]);
+
+  const renderHighlightedText = () => {
+    if (!searchQuery.trim() || matches.length === 0) {
+      return null;
+    }
+
+    const parts = [];
+    let lastIndex = 0;
+
+    matches.forEach((matchIndex, idx) => {
+      const isCurrentMatch = idx === currentMatch;
+
+      // Adiciona o texto antes do match
+      if (matchIndex > lastIndex) {
+        parts.push(
+          <Text key={`text-${idx}`} style={styles.overlayText}>
+            {note.substring(lastIndex, matchIndex)}
+          </Text>
+        );
+      }
+
+      // Adiciona o match com destaque
+      parts.push(
+        <Text
+          key={`match-${idx}`}
+          style={[
+            styles.overlayText,
+            isCurrentMatch
+              ? styles.currentMatchHighlight
+              : styles.matchHighlight,
+          ]}
+        >
+          {note.substring(matchIndex, matchIndex + searchQuery.length)}
+        </Text>
+      );
+
+      lastIndex = matchIndex + searchQuery.length;
+    });
+
+    // Adiciona o texto após o último match
+    if (lastIndex < note.length) {
+      parts.push(
+        <Text key="text-end" style={styles.overlayText}>
+          {note.substring(lastIndex)}
+        </Text>
+      );
+    }
+
+    return <Text style={styles.overlayTextContainer}>{parts}</Text>;
+  };
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <StatusBar style="light" />
+
+      {searchVisible && (
+        <View style={styles.searchBar}>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Buscar..."
+            placeholderTextColor="#7a7f87"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            autoFocus
+            keyboardAppearance="dark"
+            returnKeyType="search"
+          />
+          {matches.length > 0 && (
+            <View style={styles.searchNav}>
+              <Text style={styles.searchCount}>
+                {currentMatch + 1}/{matches.length}
+              </Text>
+              <TouchableOpacity
+                onPress={() => navigateToMatch("prev")}
+                style={styles.navButton}
+              >
+                <Text style={styles.navText}>↑</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => navigateToMatch("next")}
+                style={styles.navButton}
+              >
+                <Text style={styles.navText}>↓</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+          <TouchableOpacity
+            onPress={() => {
+              setSearchVisible(false);
+              setSearchQuery("");
+            }}
+            style={styles.closeButton}
+          >
+            <Text style={styles.closeText}>✕</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {!searchVisible && (
+        <View style={styles.topBar}>
+          <TouchableOpacity
+            onPress={() => setSearchVisible(true)}
+            style={styles.searchButton}
+          >
+            <Text style={styles.searchButtonText}>Buscar</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoider}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
+      >
+        <ScrollView
+          ref={scrollViewRef}
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <TextInput
+            ref={textInputRef}
+            style={[
+              styles.editor,
+              searchQuery && matches.length > 0 && styles.editorWithSearch,
+            ]}
+            placeholder="Escreva suas notas..."
+            placeholderTextColor="#7a7f87"
+            multiline
+            autoFocus={!searchVisible}
+            value={note}
+            onChangeText={handleChange}
+            onPress={handlePress}
+            onLongPress={handleLongPress}
+            autoCorrect
+            autoCapitalize="sentences"
+            textAlignVertical="top"
+            keyboardAppearance="dark"
+            scrollEnabled={false}
+            blurOnSubmit={false}
+            selectionColor="#5ce2ff"
+          />
+          {searchQuery && matches.length > 0 && (
+            <View style={styles.highlightOverlay} pointerEvents="none">
+              {renderHighlightedText()}
+            </View>
+          )}
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#05060a",
+    paddingHorizontal: 20,
+    paddingTop: Platform.OS === "android" ? 20 : 0,
+  },
+  keyboardAvoider: {
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+  },
+  editor: {
+    minHeight: "100%",
+    color: "#f5f7fb",
+    fontSize: 18,
+    lineHeight: 28,
+    fontFamily: Platform.select({
+      ios: "Menlo",
+      android: "monospace",
+      default: undefined,
+    }),
+    paddingVertical: 32,
+    paddingHorizontal: 12,
+  },
+  topBar: {
+    position: "absolute",
+    right: 20,
+    top: Platform.OS === "android" ? 30 : 10,
+    zIndex: 10,
+    flexDirection: "row",
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    alignItems: "center",
+  },
+  searchButton: {
+    backgroundColor: "#1a1d24",
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  searchButtonText: {
+    color: "#f5f7fb",
+    fontSize: 14,
+  },
+  searchBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#1a1d24",
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  searchInput: {
+    flex: 1,
+    color: "#f5f7fb",
+    fontSize: 16,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  searchNav: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginLeft: 8,
+    gap: 4,
+  },
+  searchCount: {
+    color: "#7a7f87",
+    fontSize: 14,
+    marginRight: 8,
+  },
+  navButton: {
+    padding: 8,
+    backgroundColor: "#2a2d34",
+    borderRadius: 4,
+  },
+  navText: {
+    color: "#f5f7fb",
+    fontSize: 16,
+  },
+  closeButton: {
+    padding: 8,
+    marginLeft: 8,
+  },
+  closeText: {
+    color: "#7a7f87",
+    fontSize: 18,
+  },
+  editorWithSearch: {
+    color: "transparent",
+  },
+  highlightOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    paddingVertical: 16,
+    paddingHorizontal: 12,
+  },
+  overlayTextContainer: {
+    fontSize: 18,
+    lineHeight: 26,
+    fontFamily: Platform.select({
+      ios: "Menlo",
+      android: "monospace",
+      default: undefined,
+    }),
+  },
+  overlayText: {
+    color: "#f5f7fb",
+  },
+  matchHighlight: {
+    backgroundColor: "rgba(255, 235, 59, 0.3)",
+    color: "#f5f7fb",
+  },
+  currentMatchHighlight: {
+    backgroundColor: "rgba(255, 152, 0, 0.5)",
+    color: "#fff",
+    fontWeight: "600",
+  },
+});
