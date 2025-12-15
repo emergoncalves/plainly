@@ -10,14 +10,21 @@ interface TopBarProps {
   keepAwakeActive: boolean;
 }
 
-export const TopBar: React.FC<TopBarProps> = ({ onSearchPress, onKeepAwakePress, keepAwakeActive }) => {
+export const TopBar: React.FC<TopBarProps> = ({
+  onSearchPress,
+  onKeepAwakePress,
+  keepAwakeActive,
+}) => {
   return (
     <View style={styles.topBar}>
-      <TouchableOpacity onPress={onKeepAwakePress} style={styles.keepAwakeButton}>
-        <Ionicons 
-          name={keepAwakeActive ? "eye" : "eye-off"} 
-          size={20} 
-          color={keepAwakeActive ? colors.text : colors.textSecondary} 
+      <TouchableOpacity
+        onPress={onKeepAwakePress}
+        style={styles.keepAwakeButton}
+      >
+        <Ionicons
+          name={keepAwakeActive ? "eye" : "eye-off"}
+          size={20}
+          color={keepAwakeActive ? colors.text : colors.textSecondary}
         />
       </TouchableOpacity>
       <TouchableOpacity onPress={onSearchPress} style={styles.searchButton}>

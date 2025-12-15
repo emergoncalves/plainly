@@ -40,7 +40,7 @@ export default function App() {
   } = useNoteViewModel();
 
   // Keep screen awake when enabled
-  useKeepAwake(keepAwake ? 'plainly-keep-awake' : undefined);
+  useKeepAwake(keepAwake ? "plainly-keep-awake" : undefined);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -57,7 +57,13 @@ export default function App() {
         />
       )}
 
-      {!searchVisible && <TopBar onSearchPress={handleToggleSearchVisible} onKeepAwakePress={handleToggleKeepAwake} keepAwakeActive={keepAwake} />}
+      {!searchVisible && (
+        <TopBar
+          onSearchPress={handleToggleSearchVisible}
+          onKeepAwakePress={handleToggleKeepAwake}
+          keepAwakeActive={keepAwake}
+        />
+      )}
 
       <KeyboardAvoidingView
         style={styles.keyboardAvoider}
