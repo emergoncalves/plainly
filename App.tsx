@@ -6,6 +6,7 @@ import {
   SafeAreaView,
   ScrollView,
 } from "react-native";
+import { useKeepAwake } from "expo-keep-awake";
 import { useNoteViewModel } from "./src/viewmodels/useNoteViewModel";
 import { SearchBar } from "./src/views/components/SearchBar";
 import { TopBar } from "./src/views/components/TopBar";
@@ -23,6 +24,7 @@ export default function App() {
     matches,
     currentMatch,
     showLineActions,
+    keepAwake,
     textInputRef,
     scrollViewRef,
     handleNoteChange,
@@ -34,7 +36,11 @@ export default function App() {
     handleSearchQueryChange,
     handleToggleSearchVisible,
     handleNavigateSearch,
+    handleToggleKeepAwake,
   } = useNoteViewModel();
+
+  // Keep screen awake when enabled
+  useKeepAwake(keepAwake ? 'plainly-keep-awake' : undefined);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -51,7 +57,7 @@ export default function App() {
         />
       )}
 
-      {!searchVisible && <TopBar onSearchPress={handleToggleSearchVisible} />}
+      {!searchVisible && <TopBar onSearchPress={handleToggleSearchVisible} onKeepAwakePress={handleToggleKeepAwake} keepAwakeActive={keepAwake} />}
 
       <KeyboardAvoidingView
         style={styles.keyboardAvoider}

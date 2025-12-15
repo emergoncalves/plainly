@@ -42,6 +42,13 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 8,
   },
+  keepAwakeButton: {
+    backgroundColor: colors.cardBackground,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    marginRight: 8,
+  },
   searchButtonText: {
     color: colors.text,
     fontSize: 14,

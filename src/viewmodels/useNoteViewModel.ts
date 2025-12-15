@@ -27,6 +27,7 @@ export const useNoteViewModel = () => {
   const [currentMatch, setCurrentMatch] = useState(0);
   const [selection, setSelection] = useState({ start: 0, end: 0 });
   const [showLineActions, setShowLineActions] = useState(false);
+  const [keepAwake, setKeepAwake] = useState(false);
 
   const textInputRef = useRef<TextInput>(null);
   const scrollViewRef = useRef<ScrollView>(null);
@@ -213,6 +214,10 @@ export const useNoteViewModel = () => {
     [currentMatch, matches.length]
   );
 
+  const handleToggleKeepAwake = useCallback(() => {
+    setKeepAwake((prev) => !prev);
+  }, []);
+
   return {
     // State
     note,
@@ -223,6 +228,7 @@ export const useNoteViewModel = () => {
     currentMatch,
     showLineActions,
     selection,
+    keepAwake,
 
     // Refs
     textInputRef,
@@ -240,5 +246,6 @@ export const useNoteViewModel = () => {
     handleSearchQueryChange,
     handleToggleSearchVisible,
     handleNavigateSearch,
+    handleToggleKeepAwake,
   };
 };
