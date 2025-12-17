@@ -12,6 +12,7 @@ import { SearchBar } from "./src/views/components/SearchBar";
 import { TopBar } from "./src/views/components/TopBar";
 import { NoteEditor } from "./src/views/components/NoteEditor";
 import { HighlightOverlay } from "./src/views/components/HighlightOverlay";
+import { HighlightedLinesOverlay } from "./src/views/components/HighlightedLinesOverlay";
 import { CompletedLinesOverlay } from "./src/views/components/CompletedLinesOverlay";
 import { LineActionsToolbar } from "./src/views/components/LineActionsToolbar";
 import { styles } from "./src/styles/styles";
@@ -32,7 +33,9 @@ export default function App() {
     handleToggleLineComplete,
     handleCopyLine,
     handleDeleteLine,
+    handleToggleLineHighlight,
     isCurrentLineCompleted,
+    isCurrentLineHighlighted,
     handleSearchQueryChange,
     handleToggleSearchVisible,
     handleNavigateSearch,
@@ -87,7 +90,10 @@ export default function App() {
             autoFocus={!searchVisible}
           />
           {(!searchQuery || matches.length === 0) && (
-            <CompletedLinesOverlay note={note} />
+            <>
+              <HighlightedLinesOverlay note={note} />
+              <CompletedLinesOverlay note={note} />
+            </>
           )}
           {searchQuery && matches.length > 0 && (
             <HighlightOverlay
@@ -104,7 +110,9 @@ export default function App() {
             onToggleDone={handleToggleLineComplete}
             onCopy={handleCopyLine}
             onDelete={handleDeleteLine}
+            onToggleHighlight={handleToggleLineHighlight}
             isLineCompleted={isCurrentLineCompleted()}
+            isLineHighlighted={isCurrentLineHighlighted()}
           />
         )}
       </KeyboardAvoidingView>

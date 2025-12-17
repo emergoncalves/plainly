@@ -10,6 +10,7 @@ export const colors = {
   matchHighlight: "rgba(255, 235, 59, 0.3)",
   currentMatchHighlight: "rgba(255, 152, 0, 0.5)",
   currentMatchText: "#fff",
+  highlightBackground: "rgba(255, 235, 59, 0.15)",
 };
 
 export const typography = {

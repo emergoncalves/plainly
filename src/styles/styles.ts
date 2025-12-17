@@ -122,6 +122,9 @@ export const styles = StyleSheet.create({
     textDecorationLine: "line-through",
     textDecorationColor: colors.textSecondary,
   },
+  highlightedLineText: {
+    backgroundColor: colors.highlightBackground,
+  },
   matchHighlight: {
     backgroundColor: colors.matchHighlight,
     color: colors.text,

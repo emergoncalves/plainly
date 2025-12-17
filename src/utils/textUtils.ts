@@ -18,6 +18,10 @@ export const isCompletedLine = (line: string): boolean => {
   return /\(FEITO[^)]*\)/.test(line);
 };
 
+export const isHighlightedLine = (line: string): boolean => {
+  return /\s*\(★\)\s*$/.test(line);
+};
+
 export const calculateLineIndex = (
   locationY: number,
   lineHeight: number = LINE_HEIGHT,
@@ -45,6 +49,27 @@ export const toggleLineMarker = (
   } else {
     const marker = includeDate ? formatFeitoMarker() : "(FEITO)";
     newLines[lineIndex] = line + ` ${marker}`;
+  }
+
+  return newLines;
+};
+
+export const toggleHighlightMarker = (
+  lines: string[],
+  lineIndex: number
+): string[] => {
+  if (lineIndex < 0 || lineIndex >= lines.length) {
+    return lines;
+  }
+
+  const newLines = [...lines];
+  const line = newLines[lineIndex];
+  const markerPattern = /\s*\(★\)\s*$/;
+
+  if (markerPattern.test(line.trim())) {
+    newLines[lineIndex] = line.replace(markerPattern, "");
+  } else {
+    newLines[lineIndex] = line + ` (★)`;
   }
 
   return newLines;

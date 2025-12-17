@@ -16,6 +16,8 @@ import {
   deleteLine,
   getLineContent,
   isCompletedLine,
+  toggleHighlightMarker,
+  isHighlightedLine,
 } from "../utils/textUtils";
 
 export const useNoteViewModel = () => {
@@ -180,10 +182,25 @@ export const useNoteViewModel = () => {
     setNote(newNote);
   }, [note, getCurrentLineIndex]);
 
+  const handleToggleLineHighlight = useCallback(() => {
+    const lineIndex = getCurrentLineIndex();
+    const lines = note.split("\n");
+    const newLines = toggleHighlightMarker(lines, lineIndex);
+    const newNote = newLines.join("\n");
+    previousNoteRef.current = newNote;
+    setNote(newNote);
+  }, [note, getCurrentLineIndex]);
+
   const isCurrentLineCompleted = useCallback((): boolean => {
     const lineIndex = getCurrentLineIndex();
     const line = getLineContent(note, lineIndex);
     return line ? isCompletedLine(line) : false;
+  }, [note, getCurrentLineIndex]);
+
+  const isCurrentLineHighlighted = useCallback((): boolean => {
+    const lineIndex = getCurrentLineIndex();
+    const line = getLineContent(note, lineIndex);
+    return line ? isHighlightedLine(line) : false;
   }, [note, getCurrentLineIndex]);
 
   // Search operations
@@ -240,7 +257,9 @@ export const useNoteViewModel = () => {
     handleToggleLineComplete,
     handleCopyLine,
     handleDeleteLine,
+    handleToggleLineHighlight,
     isCurrentLineCompleted,
+    isCurrentLineHighlighted,
 
     // Search operations
     handleSearchQueryChange,
